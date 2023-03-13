@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Meraki V</title>
+        <link rel="stylesheet" href="./assets/css/style.css">
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1296.0.min.js"></script>
+    </head>
+    <body>
+        <div class="main_action">
+            <div class="input_update_interface">
+                <h1>Script v1.2</h1>
+                <div class="first_input">
+                    <div class="controls">
+                        <input id="api_key" name="api_key" type="text" required />
+                        <label class="control-label" for="api_key">API KEY</label>
+                    </div>
+                    <div class="controls">
+                        <input id="mail" name="mail" type="text" required />
+                        <label class="control-label" for="mail">Votre Mail</label>
+                    </div>
+                </div>
+                
+                <input type="file" class="choose_file_to_send" id="fileUpload" name="fileUpload" required />
+                <button id='send' onclick="s3upload()">Envoyer</button>
+            </div>
+        </div>
+
+        <div class="second_action">
+            <div class="choose_template">
+                <h1>Fichier Template</h1>
+                <img class="arrow_select_template" src="./assets/svg/cursorarrow.click.2.svg" />
+                <select id="template" name="template" required>
+                    <!-- <option value="1">Create Network VLAN</option> -->
+                    <option value="1">Create Network Static Route</option>
+                </select>
+                <button id='download_template' class="download_template">Telecharger</button>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            $(document.body).css("zoom", document.body.clientWidth / 1920);
+
+            var bucketName = "cisco-....";
+            var bucketRegion = "eu-w....";
+            var IdentityPoolId = "eu-west-3:dfe0c146-f11a-47c0-b56c-.....";
+            
+            AWS.config.update({
+                region: bucketRegion,
+                credentials: new AWS.CognitoIdentityCredentials({
+                    IdentityPoolId: IdentityPoolId
+                })
+            });
+
+            var s3 = new AWS.S3({
+                apiVersion: "2006-03-01",
+                params: { Bucket: bucketName }
+            });
+
+            function s3upload() {
+                var files = document.getElementById('fileUpload').files;
+                var api_key = document.getElementById('api_key').value
+                var mail = document.getElementById('mail').value
+
+                if (files) {
+                    var fileData = files[0];
+                    var fileName = fileData.name;
+
+                    mail = mail.replace("@", "_");
+
+                    fileName = fileName.replace(".csv", "-" + api_key + "-" + mail + ".csv");
+
+                    var params = {
+                        Bucket: bucketName,
+                        Key: fileName,
+                        Body: fileData,
+                    };
+
+                    s3.upload(params, function (err, data) {
+                        if (err) {
+                            console.log(err);
+                            return alert('There was an error uploading your file: ', err.message);
+                        }
+                        alert('Successfully uploaded file.');
+                        console.log(data);
+                    });
+                }
+            };
+
+            document.getElementById('download_template').addEventListener('click',function() {
+                const template = document.getElementById("template").value
+                var element = document.createElement("a");
+                var file = "";
+
+                if (template == "1") {
+                    file = './templates/CreateNetworkStaticRoute-api_key-firstname_lastname.csv';
+                }
+
+                element.setAttribute('href', file);
+                element.setAttribute("download", "");
+                element.style.display = 'none';
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+            })
+        </script>
+    </body>
+</html>
